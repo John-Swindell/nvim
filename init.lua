@@ -657,8 +657,7 @@ require('lazy').setup({
       -- You can press `g?` for help in this menu.
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-        'lua', 'vim', 'vimdoc', 'go', 'python',
-        -- You can add other tools here that you want Mason to install
+         -- You can add other tools here that you want Mason to install
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -892,7 +891,7 @@ require('lazy').setup({
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter-intro`
     config = function()
       -- ensure basic parser are installed
-      local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+      local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'python', 'go' }
       require('nvim-treesitter').install(parsers)
 
       ---@param buf integer
