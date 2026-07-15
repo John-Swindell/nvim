@@ -49,6 +49,10 @@ vim.filetype.add({
   extension = {
     gotmpl = 'gotmpl',
     gohtml = 'gohtml',
+    -- Neovim's builtin filetype detection maps *.tf to the legacy 'tf' filetype
+    -- (historic Vim/TinyFugue mapping), not 'terraform'. Without this override,
+    -- tflint, terraform-ls, and terraform_fmt below never attach to real .tf files.
+    tf = 'terraform',
   },
   pattern = {
     ['.*/templates/.*%.tpl'] = 'helm',
@@ -71,9 +75,9 @@ vim.g.have_nerd_font = true
 
 -- Make line numbers default
 vim.o.number = true
+vim.o.relativenumber = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
@@ -251,11 +255,52 @@ require('lazy').setup({
     ---@diagnostic disable-next-line: missing-fields
     opts = {
       signs = {
-        add = { text = '+' }, ---@diagnostic disable-line: missing-fields
-        change = { text = '~' }, ---@diagnostic disable-line: missing-fields
-        delete = { text = '_' }, ---@diagnostic disable-line: missing-fields
-        topdelete = { text = '‾' }, ---@diagnostic disable-line: missing-fields
-        changedelete = { text = '~' }, ---@diagnostic disable-line: missing-fields
+        add          = { text = '┃' },
+        change       = { text = '┃' },
+        delete       = { text = '_' },
+        topdelete    = { text = '‾' },
+        changedelete = { text = '~' },
+        untracked    = { text = '┆' },
+      },
+      signs_staged = {
+        add          = { text = '┃' },
+        change       = { text = '┃' },
+        delete       = { text = '_' },
+        topdelete    = { text = '‾' },
+        changedelete = { text = '~' },
+        untracked    = { text = '┆' },
+      },
+      signs_staged_enable = true,
+      signcolumn = true,  -- Toggle with `:Gitsigns toggle_signs`
+      numhl      = false, -- Toggle with `:Gitsigns toggle_numhl`
+      linehl     = false, -- Toggle with `:Gitsigns toggle_linehl`
+      word_diff  = false, -- Toggle with `:Gitsigns toggle_word_diff`
+      watch_gitdir = {
+        follow_files = true
+      },
+      auto_attach = true,
+      attach_to_untracked = false,
+      current_line_blame = false, -- Toggle with `:Gitsigns toggle_current_line_blame`
+      current_line_blame_opts = {
+        virt_text = true,
+        virt_text_pos = 'eol', -- 'eol' | 'overlay' | 'right_align'
+        delay = 1000,
+        ignore_whitespace = false,
+        virt_text_priority = 100,
+        use_focus = true,
+      },
+      current_line_blame_formatter = '<author>, <author_time:%R> - <summary>',
+      blame_formatter = nil, -- Use default
+      sign_priority = 6,
+      update_debounce = 100,
+      status_formatter = nil, -- Use default
+      max_file_length = 40000, -- Disable if file is longer than this (in lines)
+      preview_config = {
+        -- Options passed to nvim_open_win
+        style = 'minimal',
+        relative = 'cursor',
+        row = 0,
+        col = 1
       },
     },
   },
@@ -301,6 +346,11 @@ require('lazy').setup({
   -- you do for a plugin at the top level, you can do for a dependency.
   --
   -- Use the `dependencies` key to specify the dependencies of a particular plugin
+  {
+    'tpope/vim-dadbod',
+    'kristijanhusak/vim-dadbod-completion',
+    'kristijanhusak/vim-dadbod-ui',
+  },
 
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
@@ -583,6 +633,14 @@ require('lazy').setup({
         ts_ls = {},
         stylua = {}, -- Used to format Lua code
 
+        -- cypress (panthersinsights.com): React/Vite/TS + Tailwind + Terraform
+        eslint = {}, -- flat-config aware, backs `pnpm lint`
+        tailwindcss = {}, -- Aquifer Topography design system class completion
+        jsonls = {}, -- package.json, tsconfig.json
+        yamlls = {}, -- GitHub Actions workflows
+        cssls = {},
+        terraformls = {},
+
         -- Special Lua Config, as recommended by neovim help docs
         lua_ls = {
           on_init = function(client)
@@ -627,7 +685,8 @@ require('lazy').setup({
       -- You can press `g?` for help in this menu.
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-         -- You can add other tools here that you want Mason to install
+        -- You can add other tools here that you want Mason to install
+        'tflint', -- terraform linter, used by lint.lua
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -677,7 +736,14 @@ require('lazy').setup({
         python = { "isort", "black" },
         javascript = { "prettierd", "prettier", stop_after_first = true },
         typescript = { "prettierd", "prettier", stop_after_first = true },
+        javascriptreact = { "prettierd", "prettier", stop_after_first = true },
+        typescriptreact = { "prettierd", "prettier", stop_after_first = true },
+        json = { "prettierd", "prettier", stop_after_first = true },
+        yaml = { "prettierd", "prettier", stop_after_first = true },
+        css = { "prettierd", "prettier", stop_after_first = true },
         rust = { 'rustfmt' },
+        terraform = { 'terraform_fmt' },
+        ['terraform-vars'] = { 'terraform_fmt' },
         -- Conform can also run multiple formatters sequentially
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
@@ -862,7 +928,7 @@ require('lazy').setup({
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter-intro`
     config = function()
       -- ensure basic parser are installed
-      local parsers = { 
+      local parsers = {
         'bash',
         'c',
         'diff',
@@ -879,6 +945,14 @@ require('lazy').setup({
         'gomod',
         'gosum',
         'gotmpl',
+        'javascript',
+        'typescript',
+        'tsx',
+        'json',
+        'yaml',
+        'css',
+        'terraform',
+        'hcl',
       }
 
       require('nvim-treesitter').install(parsers)
